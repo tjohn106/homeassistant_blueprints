@@ -59,9 +59,9 @@ blueprint:
     allowance:
       name: Change Allowance
       description: >-
-        How much can the brightnes be changed without this automation stop updating the brightness.
+        How much the brightness can be changed before this automation stops updating the brightness.
         If set to 0% this automation will stop update the brightness if the brightness has been changed at all since the last triggering of this automation.
-        If set to 100% this automation will keep on and update the brightness even if you have manually changed the brightness to any other value since the last trigger.
+        If set to 100% this automation will continue updating the brightness even if you have manually changed the brightness to any other value since the last trigger.
       default: 0
       selector:
         number:
@@ -166,6 +166,8 @@ variables:
   max_brightness: "{{ max_brightness_input|float }}"
   min_brightness_input: !input min_brightness
   min_brightness: "{{ min_brightness_input|float }}"
+  day_rbg: !input day_color
+  night_rgb: !input night_color
 
   trigger_is_event: "{{ trigger is defined and trigger.platform == 'event' }}"
   skip_event: "{{ trigger_is_event and trigger.event.data.service_data|length > 1 }}"
@@ -240,6 +242,7 @@ variables:
 
   brightness: "{{ (brightness_pct * 2.54)|int }}"
   last_brightness: "{{ (last_brightness_pct * 2.54)|int }}"
+  color: "{{ day_color|list }}"
 
   turn_on_entities: >-
     {%- if force_turn_on -%}
@@ -310,14 +313,14 @@ action:
       sequence:
       - service: logger.set_level
         data:
-          homeassistant.components.blueprint.dim_lights_based_on_sun_elevation: DEBUG
+          homeassistant.components.blueprint.dim_lights_and_change_color_by_sun: DEBUG
     - conditions:
       - condition: template
         value_template: "{{ debugging and trigger.platform == 'homeassistant' and trigger.event == 'start' }}"
       sequence:
       - service: logger.set_level
         data:
-          homeassistant.components.blueprint.dim_lights_based_on_sun_elevation: DEBUG
+          homeassistant.components.blueprint.dim_lights_and_change_color_by_sun: DEBUG
     default:
     - choose:
       - conditions:
@@ -327,7 +330,7 @@ action:
           - service: system_log.write
             data:
               level: error
-              logger: homeassistant.components.blueprint.dim_lights_based_on_sun_elevation
+              logger: homeassistant.components.blueprint.dim_lights_and_change_color_by_sun
               message: "{{ error_msg }}"
       default:
       - choose:
@@ -338,7 +341,7 @@ action:
             - service: system_log.write
               data:
                 level: debug
-                logger: homeassistant.components.blueprint.dim_lights_based_on_sun_elevation
+                logger: homeassistant.components.blueprint.dim_lights_and_change_color_by_sun
                 message: "
                   DEBUG:\n
                   skip_event: {{ skip_event }}\n
@@ -398,4 +401,5 @@ action:
                 entity_id: "{{ dim_entities }}"
                 brightness: "{{ brightness }}"
                 transition: "{{ transition_time }}"
+                rgb_color: '{{ color }}"
         default: []
