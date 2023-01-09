@@ -4,7 +4,7 @@ blueprint:
     Adjust brightness and color of lights based on the current sun elevation.
     If force debug is enabled, you need to execute this automation manually
     or let Home Assitant restart before the change take effect.
-  source_url: https://github.com/tjohn106/homeassistant_blueprints/blob/master/blueprints/dim_lights_and_change_color_by_sun.yaml
+  source_url: https://github.com/tjohn106/homeassistant_blueprints/blob/main/blueprints/dim_lights_and_change_color_by_sun.yaml
   domain: automation
   input:
     target_lights:
