@@ -42,6 +42,12 @@ blueprint:
       default: [255, 255, 255]
       selector:
         color_rgb:
+    night_color:
+      name: Night Color
+      description: Color of the light during the night
+      default: [255, 80, 40]
+      selector:
+        color_rgb:
     reverse:
       name: Reverse brightness
       description: >-
