@@ -36,19 +36,12 @@ blueprint:
           unit_of_measurement: "%"
           mode: slider
           step: 1
-    color_style:
-      name: Color Type Selector
-      description: >-
-        How/if you would like ot update the color of the lights.
-        Select off if you would not like to use this feature.
-      default: RGB
+    day_color:
+      name: Day Color
+      description: Color of the light during the day
+      default: [255, 255, 255]
       selector:
-        options:
-          - RGB
-          - Temperature
-          - Off
-    template:
-      {{(color_style == 'RGB') | iif('Yes', 'No')}}
+        color_rgb:
     reverse:
       name: Reverse brightness
       description: >-
