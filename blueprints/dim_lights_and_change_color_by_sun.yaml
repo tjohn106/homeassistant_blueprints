@@ -401,5 +401,5 @@ action:
                 entity_id: "{{ dim_entities }}"
                 brightness: "{{ brightness }}"
                 transition: "{{ transition_time }}"
-                rgb_color: '{{ color }}"
+                rgb_color: "{{ color }}"
         default: []
