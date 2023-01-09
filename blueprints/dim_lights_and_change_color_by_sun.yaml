@@ -48,7 +48,7 @@ blueprint:
           - Temperature
           - Off
     template:
-      {{color_style == 'RGB' | iif('Yes', 'No')}}
+      {{(color_style == 'RGB') | iif('Yes', 'No')}}
     reverse:
       name: Reverse brightness
       description: >-
