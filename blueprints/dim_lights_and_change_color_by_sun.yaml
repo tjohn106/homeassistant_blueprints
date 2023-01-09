@@ -48,10 +48,12 @@ blueprint:
           - Temperature
           - Off
     template:
-      {{!input color_style == 'RGB' | iif('Yes', 'No')}}
+      {{color_style == 'RGB' | iif('Yes', 'No')}}
     reverse:
       name: Reverse brightness
-      description: If checked, light will start dim when sun starts to set (start elevation value) and will be at full brightness when the elevation has reached the end elevation value.
+      description: >-
+        If checked, light will start dim when sun starts to set (start elevation value)
+        and will be at full brightness when the elevation has reached the end elevation value.
       default: False
       selector:
         boolean:
