@@ -50,7 +50,7 @@ blueprint:
       description: Color of the light during the night
       default:
         - 225
-        - 50
+        - 60
         - 10
       selector:
         color_rgb: {}
@@ -190,18 +190,27 @@ variables:
   delay_time: !input execution_time
   trigger_is_event: "{{ trigger is defined and trigger.platform == 'event' }}"
   skip_event:
-    "{{ trigger_is_event and trigger.event.data.service_data|length > 1
-    }}"
+    "{% if true %}{{ false}}{% else %}{{ trigger_is_event and trigger.event.data.service_data|length > 1 }}{% endif %}"
   affected_entities:
-    "{%- if skip_event -%}\n  {{ [] }}\n{%- elif trigger is not defined
-    or trigger.platform != 'event' or trigger.event.data.service_data is not defined
-    or trigger.event.data.service_data.entity_id is not defined -%}\n  {{ entity_list
-    }}\n{%- else -%}\n  {%- if trigger.event.data.service_data.entity_id is string
-    -%}\n    {%- set eids = [trigger.event.data.service_data.entity_id] -%}\n  {%-
-    else -%}\n    {%- set eids = trigger.event.data.service_data.entity_id -%}\n  {%-
-    endif -%}\n  {%- set data = namespace(e=[]) -%}\n  {%- for e in eids -%}\n    {%-
-    if e in entity_list -%}\n      {%- set data.e = data.e + [e] -%}\n    {%- endif
-    -%}\n  {% endfor %}\n  {{ data.e }}\n{%- endif -%}"
+    "{%- if skip_event -%}\n
+    {{ [] }}\n
+    {%- elif trigger is not defined or trigger.platform != 'event' or trigger.event.data.service_data is not defined
+    or trigger.event.data.service_data.entity_id is not defined -%}\n
+    {{ entity_list}}\n
+    {%- else -%}\n
+    {%- if trigger.event.data.service_data.entity_id is string -%}\n
+    {%- set eids = [trigger.event.data.service_data.entity_id] -%}\n
+    {%- else -%}\n
+    {%- set eids = trigger.event.data.service_data.entity_id -%}\n
+    {%- endif -%}\n
+    {%- set data = namespace(e=[]) -%}\n
+    {%- for e in eids -%}\n
+    {%- if e in entity_list -%}\n
+    {%- set data.e = data.e + [e] -%}\n
+    {%- endif -%}\n
+    {% endfor %}\n
+    {{ data.e }}\n
+    {%- endif -%}"
   current_states:
     "{%- set data = namespace(e=[]) -%} {%- for e in entity_list -%}\n
     \ {%- set a = {'entity_id': e, 'state': states(e), 'brightness': state_attr(e,
@@ -290,7 +299,7 @@ variables:
     {%- set is_on = states(e) == 'on' -%}\n
     {%- set last_changed = (now() - states[e].last_changed) -%}\n
     {%- set can_dim = state_attr(e, 'supported_features')|bitwise_and(1)|bitwise_or(not is_on) -%}\n
-    {%- set can_color = state_attr(e, 'supported_features')|bitwise_and(16)|bitwise_or(not is_on) -%}\n
+    {%- if state_attr(e, 'supported_color_modes') != ''-%}{%-set can_color = false -%}{%- else -%}{%- set can_color = true -%}{%- endif -%}\n
     {# Get current color if features is supported #}
     {%- if can_color -%}{%- set current_color = state_attr(e, 'rgb_color') -%}\n
     {%- else -%}{%- set current_color = [255, 255, 255] -%}\n
@@ -307,18 +316,17 @@ variables:
     * color change is supported by the entity AND light is ON
     ** the current color is different from the the new color AND current color is not equal to last set color (has not been changed by the user within the allowance)\n
     #}\n
-    {%- if e in affected_entities -%}\n
     {%- if trigger_is_event and (not is_on or (is_on and last_changed.seconds < 2)) -%}\n
     {%- set data.entities = data.entities + [e] -%}\n
     {%- elif can_dim and force_turn_on -%}\n
     {%- set data.entities = data.entities + [e] -%}\n
-    {%- elif can_dim and is_on and current_brightness != brightness and (current_brightness - last_brightness)|abs <= allowance_value -%}\n
-    {%- set data.entities = data.entities + [e] -%}\n
-    {%- elif can_color and is_on -%}
-    {%- if current_color.0 != color.0 and current_color.1 != color.1 and current_color.2 != color.2 and
-    ((current_color.0 - color.0)|abs + (current_color.1 - color-1)|abs + (current_color.2 - color.2)|abs) <= allowance_value -%}\n
+    {%- elif can_dim and is_on and current_brightness != brightness and (current_brightness - last_brightness)/2.55|abs <= allowance_value -%}\n
     {%- set data.entities = data.entities + [e] -%}\n
     {%- endif -%}\n
+    {%- if can_color and is_on-%}\n
+    {%- if current_color.0 != color.0 or current_color.1 != color.1 or current_color.2 != color.2 and
+    ((current_color.0 - color.0)|abs + (current_color.1 - color-1)|abs + (current_color.2 - color.2)|abs) <= allowance_value*2.55 -%}\n
+    {%- set data.entities = data.entities + [e] -%}\n
     {%- endif -%}\n
     {%- endif -%}\n
     {%- endfor -%}\n
