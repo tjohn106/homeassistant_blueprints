@@ -189,28 +189,6 @@ variables:
   night_rgb: !input night_color
   delay_time: !input execution_time
   trigger_is_event: "{{ trigger is defined and trigger.platform == 'event' }}"
-  skip_event:
-    "{% if true %}{{ false}}{% else %}{{ trigger_is_event and trigger.event.data.service_data|length > 1 }}{% endif %}"
-  affected_entities:
-    "{%- if skip_event -%}\n
-    {{ [] }}\n
-    {%- elif trigger is not defined or trigger.platform != 'event' or trigger.event.data.service_data is not defined
-    or trigger.event.data.service_data.entity_id is not defined -%}\n
-    {{ entity_list}}\n
-    {%- else -%}\n
-    {%- if trigger.event.data.service_data.entity_id is string -%}\n
-    {%- set eids = [trigger.event.data.service_data.entity_id] -%}\n
-    {%- else -%}\n
-    {%- set eids = trigger.event.data.service_data.entity_id -%}\n
-    {%- endif -%}\n
-    {%- set data = namespace(e=[]) -%}\n
-    {%- for e in eids -%}\n
-    {%- if e in entity_list -%}\n
-    {%- set data.e = data.e + [e] -%}\n
-    {%- endif -%}\n
-    {% endfor %}\n
-    {{ data.e }}\n
-    {%- endif -%}"
   current_states:
     "{%- set data = namespace(e=[]) -%} {%- for e in entity_list -%}\n
     \ {%- set a = {'entity_id': e, 'state': states(e), 'brightness': state_attr(e,
@@ -293,13 +271,13 @@ variables:
     {{ data.entities }}\n
     {%- else -%}{{ [] }}\n
     {%- endif -%}"
-  dim_entities: "{%- set data = namespace(entities=[]) -%}\n
+  change_entities: "{%- set data = namespace(entities=[]) -%}\n
     {%- for e in entity_list-%}\n
     {%- set current_brightness = state_attr(e, 'brightness') -%}\n
     {%- set is_on = states(e) == 'on' -%}\n
     {%- set last_changed = (now() - states[e].last_changed) -%}\n
     {%- set can_dim = state_attr(e, 'supported_features')|bitwise_and(1)|bitwise_or(not is_on) -%}\n
-    {%- if state_attr(e, 'supported_color_modes') != ''-%}{%-set can_color = false -%}{%- else -%}{%- set can_color = true -%}{%- endif -%}\n
+    {%- if state_attr(e, 'supported_color_modes')|length > 0 -%}{%-set can_color = true -%}{%- else -%}{%- set can_color = false -%}{%- endif -%}\n
     {# Get current color if features is supported #}
     {%- if can_color -%}{%- set current_color = state_attr(e, 'rgb_color') -%}\n
     {%- else -%}{%- set current_color = [255, 255, 255] -%}\n
@@ -331,6 +309,8 @@ variables:
     {%- endif -%}\n
     {%- endfor -%}\n
     {{ data.entities }}"
+  skip_event:
+    "{% if dim_entites|length > 0 %}{{ false}}{% else %}{{ true }}{% endif %}"
   turn_off_entities:
     "{%- if force_turn_off -%}\n  {{ entity_list }}\n{%- else -%}\n
     \ {{ [] }}\n{%- endif -%}"
@@ -389,7 +369,7 @@ action:
                       logger: homeassistant.components.blueprint.dim_lights_and_change_color_by_sun
                       message:
                         " DEBUG:\n skip_event: {{ skip_event }}\n allowance_value: {{
-                        allowance_value }}\n affected_entities: {{ affected_entities }}\n\n
+                        allowance_value }}\n
                         elevation: {{ elevation }} ({% if rising %}{{ start_rising ~ ', ' ~
                         end_rising }}{% else %}{{ start_setting ~ ', ' ~ end_setting }}{% endif
                         %})\n {% if last_elevation != \"\" -%}last elevation: {{ last_elevation
@@ -397,7 +377,7 @@ action:
                         != \"\" -%}last brightness: {{ last_brightness }}\n{% endif %} \n current_states:
                         {{ current_states }}\n \n force_turn_on: {{ force_turn_on }}\n force_turn_off:
                         {{ force_turn_off }}\n \n entities: {{ entity_list }}\n \n turn_on_entities:
-                        {{ turn_on_entities }}\n \n dim_entities: {{ dim_entities }}\n \n turn_off_entities:
+                        {{ turn_on_entities }}\n \n change_entities: {{ change_entities }}\n \n turn_off_entities:
                         {{ turn_off_entities }}\n \n {% if trigger is defined %}Triggered by:
                         {{ trigger.platform }}\n{% endif %} {% if trigger is defined and trigger.platform
                         == 'state' and trigger.from_state.entity_id == 'sun.sun' -%} from: (elevation:
@@ -426,11 +406,11 @@ action:
                       entity_id: "{{ turn_on_entities }}"
               - conditions:
                   - condition: template
-                    value_template: "{{ not skip_event and dim_entities|length > 0 or true}}"
+                    value_template: "{{ not skip_event and change_entities|length > 0 or true}}"
                 sequence:
                   - service: light.turn_on
                     data:
-                      entity_id: "{{ dim_entities }}"
+                      entity_id: "{{ change_entities }}"
                       brightness: "{{ brightness }}"
                       transition: "{{ transition_time }}"
                       rgb_color: "{{ color }}"
